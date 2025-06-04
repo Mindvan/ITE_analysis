@@ -288,9 +288,9 @@ if (typeof document !== 'undefined') {
     }
 
     const resultsModal = document.createElement('div');
-    resultsModal.className = 'modal';
+    resultsModal.className = 'custom-modal';
     resultsModal.innerHTML = `
-      <div class="modal-content" style="
+      <div class="custom-modal-content" style="
         max-width: 900px;
         width: 98vw;
         font-size: 14px;
@@ -316,7 +316,7 @@ if (typeof document !== 'undefined') {
         </div>
       </div>
       <style>
-        .modal {
+        .custom-modal {
           display: block !important;
           position: fixed;
           z-index: 20000;
@@ -324,14 +324,14 @@ if (typeof document !== 'undefined') {
           background: rgba(0,0,0,0.25);
           overflow: auto;
         }
-        .modal-content {
+        .custom-modal-content {
           margin: 40px auto;
           background: #fff;
           border-radius: 10px;
           box-shadow: 0 4px 32px #0002;
         }
         @media (max-width: 750px) {
-          .modal-content { max-width: 98vw; }
+          .custom-modal-content { max-width: 98vw; }
         }
       </style>
     `;
@@ -907,6 +907,41 @@ if (typeof document !== 'undefined') {
       } catch (e) {
         window.location.href = 'participant.html';
       }
+    });
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  });
+
+  const importReportBtn = document.getElementById('importReportBtn');
+  if (importReportBtn) {
+    importReportBtn.addEventListener('click', function() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          // Если структура совпадает с результатами анализа — визуализируем
+          if (json && (json.full_features || json.no_gaze || json.no_emotion)) {
+            displayResults(json);
+          } else if (json.results && (json.results.full_features || json.results.no_gaze || json.results.no_emotion)) {
+            // Если файл — это полный ответ сервера, берем .results
+            displayResults(json.results);
+          } else {
+            alert('Файл не похож на отчет анализа!');
+          }
+        } catch (err) {
+          alert('Ошибка чтения файла: ' + err.message);
+        }
+      };
+      input.click();
     });
   }
 }
