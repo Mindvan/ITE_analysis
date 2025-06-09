@@ -1,0 +1,159 @@
+{
+  "startTime": 1749386861781,
+  "endTime": 1749386862404,
+  "duration": 623,
+  "gazeData": [
+    {
+      "timestamp": 1749386861914,
+      "taskId": null,
+      "x": 161.68401155557888,
+      "y": 35.48797225273985,
+      "relativeTime": 133
+    },
+    {
+      "timestamp": 1749386862018,
+      "taskId": null,
+      "x": 151.90555043213186,
+      "y": 37.09628418460264,
+      "relativeTime": 237
+    },
+    {
+      "timestamp": 1749386862159,
+      "taskId": null,
+      "x": 106.73224493536382,
+      "y": 44.78258602941858,
+      "relativeTime": 378
+    },
+    {
+      "timestamp": 1749386862275,
+      "taskId": null,
+      "x": 68.61917664128136,
+      "y": 33.36595792093566,
+      "relativeTime": 494
+    },
+    {
+      "timestamp": 1749386862366,
+      "taskId": null,
+      "x": 4.1575922735585,
+      "y": 50.19883541632632,
+      "relativeTime": 585
+    }
+  ],
+  "emotionData": [
+    {
+      "timestamp": 1749386861789,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9999290108680725,
+        "happy": 2.946430299743952e-07,
+        "sad": 6.262962870096089e-06,
+        "angry": 2.2847709146844863e-07,
+        "fearful": 3.0025097963459757e-09,
+        "disgusted": 8.465678852376257e-11,
+        "surprised": 6.430717621697113e-05
+      },
+      "relativeTime": 9,
+      "dominantEmotion": "neutral"
+    },
+    {
+      "timestamp": 1749386861933,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9999662041664124,
+        "happy": 1.6724851548133302e-07,
+        "sad": 1.3675285117642488e-06,
+        "angry": 7.302563886923963e-08,
+        "fearful": 5.584916418222008e-10,
+        "disgusted": 2.8212543412564628e-11,
+        "surprised": 3.2554013159824535e-05
+      },
+      "relativeTime": 152,
+      "dominantEmotion": "neutral"
+    },
+    {
+      "timestamp": 1749386862050,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9998030662536621,
+        "happy": 8.34036541164096e-07,
+        "sad": 2.8192904210300185e-05,
+        "angry": 1.1275097904217546e-06,
+        "fearful": 1.383716465852558e-07,
+        "disgusted": 1.2769666435374916e-09,
+        "surprised": 0.0001666926546022296
+      },
+      "relativeTime": 269,
+      "dominantEmotion": "neutral"
+    },
+    {
+      "timestamp": 1749386862184,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9996606111526489,
+        "happy": 4.2190387716800615e-07,
+        "sad": 1.1590957001317292e-05,
+        "angry": 6.5318831730110105e-06,
+        "fearful": 7.664618273395263e-09,
+        "disgusted": 8.854065813856948e-10,
+        "surprised": 0.00032094662310555577
+      },
+      "relativeTime": 403,
+      "dominantEmotion": "neutral"
+    },
+    {
+      "timestamp": 1749386862302,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9992283582687378,
+        "happy": 1.9126034658256685e-06,
+        "sad": 0.00025364788598380983,
+        "angry": 1.5286956113413908e-05,
+        "fearful": 4.86641170027724e-07,
+        "disgusted": 1.0973808528547124e-08,
+        "surprised": 0.000500530528370291
+      },
+      "relativeTime": 521,
+      "dominantEmotion": "neutral"
+    }
+  ],
+  "sessionId": "session_1749386861781_c1kai4uqe",
+  "timestamp": 1749386861781,
+  "browser": {
+    "name": "Chrome",
+    "version": "137",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "language": "ru-RU"
+  },
+  "screen": {
+    "width": 1536,
+    "height": 864,
+    "availWidth": 1536,
+    "availHeight": 824,
+    "pixelRatio": 1.25,
+    "viewport": {
+      "width": 1536,
+      "height": 738
+    }
+  },
+  "tasks": [],
+  "currentTaskId": null,
+  "interactionEvents": [],
+  "errors": [],
+  "participantNumber": "13",
+  "glasses": true,
+  "consentData": true,
+  "consentExperiment": true,
+  "calibrationAccuracy": {},
+  "statistics": {
+    "totalTasks": 0,
+    "completedTasks": 0,
+    "totalGazePoints": 5,
+    "totalEmotionSamples": 5,
+    "totalInteractions": 0,
+    "avgTaskDuration": 0,
+    "emotionDistribution": {
+      "neutral": 5
+    }
+  }
+}

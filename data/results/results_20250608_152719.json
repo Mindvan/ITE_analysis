@@ -1,0 +1,24 @@
+{
+  "browser_comparison": {
+    "Chrome": {
+      "avg_task_time": 6.0,
+      "emotion_distribution": {
+        "happy": 100.0
+      }
+    },
+    "Firefox": {
+      "avg_task_time": 8.0,
+      "emotion_distribution": {
+        "happy": 100.0
+      }
+    }
+  },
+  "emotion_stats": {
+    "happy": 100.0
+  },
+  "task_stats": {
+    "total_tasks": 4,
+    "completed_tasks": 4,
+    "avg_task_time": 3.5
+  }
+}

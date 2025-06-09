@@ -1,0 +1,26 @@
+{
+  "sessionId": "test_session_firefox",
+  "browser": {
+    "name": "Firefox"
+  },
+  "tasks": [
+    {
+      "completed": true,
+      "duration": 2000
+    }
+  ],
+  "gazeData": [
+    {
+      "x": 120,
+      "y": 120
+    }
+  ],
+  "emotionData": [
+    {
+      "dominantEmotion": "neutral",
+      "expressions": {
+        "neutral": 0.9
+      }
+    }
+  ]
+}

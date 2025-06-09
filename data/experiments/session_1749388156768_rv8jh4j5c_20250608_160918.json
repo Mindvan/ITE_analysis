@@ -1,0 +1,95 @@
+{
+  "startTime": 1749388156768,
+  "endTime": 1749388157732,
+  "duration": 964,
+  "gazeData": [
+    {
+      "timestamp": 1749388156885,
+      "taskId": null,
+      "x": 211.7327799796091,
+      "y": -93.50985657686057,
+      "relativeTime": 117
+    },
+    {
+      "timestamp": 1749388157008,
+      "taskId": null,
+      "x": 273.7498047286705,
+      "y": -25.26388760883097,
+      "relativeTime": 240
+    },
+    {
+      "timestamp": 1749388157188,
+      "taskId": null,
+      "x": 248.48951477005977,
+      "y": -16.85471555975441,
+      "relativeTime": 420
+    },
+    {
+      "timestamp": 1749388157359,
+      "taskId": null,
+      "x": 289.37655162989324,
+      "y": 35.021048903598015,
+      "relativeTime": 591
+    },
+    {
+      "timestamp": 1749388157513,
+      "taskId": null,
+      "x": 245.16311382873494,
+      "y": 52.90327006506281,
+      "relativeTime": 745
+    },
+    {
+      "timestamp": 1749388157633,
+      "taskId": null,
+      "x": 271.59590173474726,
+      "y": 98.29331386729254,
+      "relativeTime": 865
+    },
+    {
+      "timestamp": 1749388157723,
+      "taskId": null,
+      "x": 196.35757164243375,
+      "y": 115.57708663769051,
+      "relativeTime": 955
+    }
+  ],
+  "emotionData": [],
+  "sessionId": "session_1749388156768_rv8jh4j5c",
+  "timestamp": 1749388156768,
+  "browser": {
+    "name": "Chrome",
+    "version": "137",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "language": "ru-RU"
+  },
+  "screen": {
+    "width": 1536,
+    "height": 864,
+    "availWidth": 1536,
+    "availHeight": 824,
+    "pixelRatio": 1.25,
+    "viewport": {
+      "width": 774,
+      "height": 738
+    }
+  },
+  "tasks": [],
+  "currentTaskId": null,
+  "interactionEvents": [],
+  "errors": [],
+  "participantNumber": "13",
+  "glasses": true,
+  "consentData": true,
+  "consentExperiment": true,
+  "calibrationAccuracy": {},
+  "statistics": {
+    "totalTasks": 0,
+    "completedTasks": 0,
+    "totalGazePoints": 7,
+    "totalEmotionSamples": 0,
+    "totalInteractions": 0,
+    "avgTaskDuration": 0,
+    "emotionDistribution": {}
+  }
+}

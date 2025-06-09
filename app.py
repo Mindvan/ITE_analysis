@@ -77,87 +77,166 @@ def upload_experiment_data():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_experiment():
-    """Запускает ITE анализ для указанной сессии, списка сессий или для всех сессий, если ничего не передано"""
     try:
-        if request.is_json:
-            data = request.json
-            if 'experimentDataList' in data:
-                # Анализируем список экспериментов
-                results = analyzer.analyze_experiment_list(data['experimentDataList'])
-            elif 'experimentData' in data:
-                # Анализируем один эксперимент
-                results = analyzer.analyze_experiment(data['experimentData'])
-            elif 'session_id' in data and data['session_id']:
-                session_id = data['session_id']
-                experiment_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
-                                  if f.startswith(session_id)]
-                if not experiment_files:
-                    return jsonify({'error': 'Experiment data not found'}), 404
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], experiment_files[0])
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    exp_data = json.load(f)
-                results = analyzer.analyze_experiment(exp_data)
-            else:
-                # Анализируем все сессии
-                results = analyzer.analyze_experiment()
-        else:
-            # Анализируем все сессии
-            results = analyzer.analyze_experiment()
+        data = request.get_json()
+        if not data or 'sessionIds' not in data:
+            return jsonify({
+                'error': 'Необходимо указать sessionIds',
+                'note': 'Укажите ID сессий для анализа'
+            }), 400
 
-        # --- Сохранение результатов --- #
-        # Определяем имя файла для результатов (используем текущее время)
-        timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
-        results_filename_base = f"results_{timestamp_str}"
-        results_json_filename = f"{results_filename_base}.json"
-        results_filepath_json = os.path.join(app.config['RESULTS_FOLDER'], results_json_filename)
+        session_ids = data['sessionIds']
+        if len(session_ids) != 2:
+            return jsonify({
+                'error': 'Необходимо указать ровно 2 ID сессий',
+                'note': 'Для анализа требуется ровно 2 сессии (Chrome и Firefox)'
+            }), 400
 
-        # Сохраняем JSON результаты
-        with open(results_filepath_json, 'w', encoding='utf-8') as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
+        # Загружаем данные сессий
+        sessions_data = []
+        for session_id in session_ids:
+            session_file = None
+            for file in os.listdir('data/experiments'):
+                if session_id in file:
+                    session_file = file
+                    break
+            
+            if not session_file:
+                return jsonify({
+                    'error': f'Сессия {session_id} не найдена',
+                    'note': 'Убедитесь, что указаны корректные ID сессий'
+                }), 404
 
-        # Сохраняем графики и таблицы для каждого варианта X
-        for key in ['full_features', 'no_gaze', 'no_emotion']:
-            block = results.get(key)
-            if not block:
-                continue
-            # Сохраняем boxplot
-            for viz_name, plot_base64 in block.get('visualizations', {}).items():
-                try:
-                    if ',' in plot_base64:
-                        plot_base64 = plot_base64.split(',')[1]
-                    plot_binary_data = base64.b64decode(plot_base64)
-                    results_png_filename = f"{results_filename_base}_{key}_{viz_name}.png"
-                    results_filepath_png = os.path.join(app.config['RESULTS_FOLDER'], results_png_filename)
-                    with open(results_filepath_png, 'wb') as f:
-                        f.write(plot_binary_data)
-                except Exception as e:
-                    print(f"Ошибка при сохранении PNG графика ({key}): {e}")
-            # Сохраняем таблицу средних эффектов и std (только на английском)
-            try:
-                mean_csv = f"{results_filename_base}_{key}_ite_mean.csv"
-                std_csv = f"{results_filename_base}_{key}_ite_std.csv"
-                with open(os.path.join(app.config['RESULTS_FOLDER'], mean_csv), 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(['Model', 'Mean'])
-                    for k, v in block.get('ite_mean', {}).items():
-                        # k уже на английском, т.к. формируется в analysis.py
-                        writer.writerow([k, v])
-                with open(os.path.join(app.config['RESULTS_FOLDER'], std_csv), 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(['Model', 'Std'])
-                    for k, v in block.get('ite_std', {}).items():
-                        writer.writerow([k, v])
-            except Exception as e:
-                print(f"Ошибка при сохранении CSV ({key}): {e}")
+            with open(os.path.join('data/experiments', session_file), 'r', encoding='utf-8') as f:
+                session_data = json.load(f)
+                sessions_data.append(session_data)
 
-        # --- Возвращаем ответ фронтенду ---
-        return jsonify({
-            'status': 'success',
-            'results': results,
-            'results_file': results_json_filename # Возвращаем имя JSON файла
-        }), 200
+        # Определяем, какая сессия Chrome, а какая Firefox
+        chrome_data = None
+        firefox_data = None
+        for session in sessions_data:
+            browser = session.get('browser', {}).get('name', '').lower()
+            if 'chrome' in browser:
+                chrome_data = session
+            elif 'firefox' in browser:
+                firefox_data = session
+
+        if not chrome_data or not firefox_data:
+            return jsonify({
+                'error': 'Не удалось определить браузеры',
+                'note': 'Убедитесь, что одна сессия проведена в Chrome, а другая в Firefox'
+            }), 400
+
+        # Анализируем данные
+        analyzer = ITEAnalyzer()
+        result = analyzer.analyze_two_sessions(chrome_data, firefox_data)
+
+        if 'error' in result:
+            return jsonify(result), 400
+
+        return jsonify(result)
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'note': 'Произошла ошибка при анализе данных'
+        }), 500
+
+def analyze_all_sessions():
+    """Анализирует все доступные сессии и возвращает результаты"""
+    try:
+        experiment_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
+                          if f.endswith('.json')]
+        
+        if not experiment_files:
+            return {
+                'status': 'no_data',
+                'message': 'Нет данных для анализа'
+            }
+        
+        # Группируем сессии по браузерам
+        browser_sessions = {}
+        for file in experiment_files:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                browser = data.get('browser', {}).get('name', 'Unknown')
+                if browser not in browser_sessions:
+                    browser_sessions[browser] = []
+                browser_sessions[browser].append(data)
+        
+        # Анализируем результаты
+        results = {
+            'browser_comparison': {},
+            'emotion_stats': {},
+            'task_stats': {}
+        }
+        
+        # Сравнение браузеров
+        for browser, sessions in browser_sessions.items():
+            avg_task_time = sum(
+                sum(task.get('duration', 0) for task in session.get('tasks', []))
+                for session in sessions
+            ) / len(sessions) if sessions else 0
+            
+            emotion_counts = {}
+            total_emotions = 0
+            for session in sessions:
+                for emotion_data in session.get('emotionData', []):
+                    dominant = emotion_data.get('dominantEmotion')
+                    if dominant:
+                        emotion_counts[dominant] = emotion_counts.get(dominant, 0) + 1
+                        total_emotions += 1
+            
+            results['browser_comparison'][browser] = {
+                'avg_task_time': avg_task_time / 1000,  # конвертируем в секунды
+                'emotion_distribution': {
+                    emotion: (count / total_emotions * 100) if total_emotions > 0 else 0
+                    for emotion, count in emotion_counts.items()
+                }
+            }
+        
+        # Общая статистика по эмоциям
+        all_emotions = {}
+        total_emotions = 0
+        for sessions in browser_sessions.values():
+            for session in sessions:
+                for emotion_data in session.get('emotionData', []):
+                    dominant = emotion_data.get('dominantEmotion')
+                    if dominant:
+                        all_emotions[dominant] = all_emotions.get(dominant, 0) + 1
+                        total_emotions += 1
+        
+        results['emotion_stats'] = {
+            emotion: (count / total_emotions * 100) if total_emotions > 0 else 0
+            for emotion, count in all_emotions.items()
+        }
+        
+        # Статистика по задачам
+        total_tasks = 0
+        completed_tasks = 0
+        total_time = 0
+        for sessions in browser_sessions.values():
+            for session in sessions:
+                tasks = session.get('tasks', [])
+                total_tasks += len(tasks)
+                completed_tasks += sum(1 for task in tasks if task.get('completed'))
+                total_time += sum(task.get('duration', 0) for task in tasks)
+        
+        results['task_stats'] = {
+            'total_tasks': total_tasks,
+            'completed_tasks': completed_tasks,
+            'avg_task_time': (total_time / completed_tasks / 1000) if completed_tasks > 0 else 0
+        }
+        
+        return results
+        
+    except Exception as e:
+        print(f"Ошибка при анализе сессий: {str(e)}")
+        return {
+            'status': 'error',
+            'message': str(e)
+        }
 
 @app.route('/api/results/<session_id>')
 def get_results(session_id):
@@ -165,17 +244,31 @@ def get_results(session_id):
     try:
         # Ищем файл с результатами
         results_files = [f for f in os.listdir(app.config['RESULTS_FOLDER']) 
-                        if f.startswith(f'results_{session_id}')]
+                        if f.startswith(f'results_')]
         
         if not results_files:
             return jsonify({'error': 'Results not found'}), 404
         
-        # берм самый свежий файл
+        # берем самый свежий файл
         latest_file = sorted(results_files)[-1]
         filepath = os.path.join(app.config['RESULTS_FOLDER'], latest_file)
         
         with open(filepath, 'r', encoding='utf-8') as f:
             results = json.load(f)
+            
+        # Добавляем статистику из эксперимента
+        experiment_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) 
+                          if f.startswith(session_id)]
+        if experiment_files:
+            exp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], experiment_files[0])
+            with open(exp_filepath, 'r', encoding='utf-8') as f:
+                exp_data = json.load(f)
+                results.update({
+                    'statistics': exp_data.get('statistics', {}),
+                    'calibrationAccuracy': exp_data.get('calibrationAccuracy'),
+                    'browser': exp_data.get('browser', {}),
+                    'emotionData': exp_data.get('emotionData', [])
+                })
         
         return jsonify({
             'status': 'success',

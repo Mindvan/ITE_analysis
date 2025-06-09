@@ -1,0 +1,45 @@
+{
+  "startTime": 1749387141668,
+  "endTime": 1749387142377,
+  "duration": 709,
+  "gazeData": [],
+  "emotionData": [],
+  "sessionId": "session_1749387141668_sxhdnk6m4",
+  "timestamp": 1749387141668,
+  "browser": {
+    "name": "Chrome",
+    "version": "137",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "language": "ru-RU"
+  },
+  "screen": {
+    "width": 1536,
+    "height": 864,
+    "availWidth": 1536,
+    "availHeight": 824,
+    "pixelRatio": 1.25,
+    "viewport": {
+      "width": 774,
+      "height": 738
+    }
+  },
+  "tasks": [],
+  "currentTaskId": null,
+  "interactionEvents": [],
+  "errors": [],
+  "participantNumber": "13",
+  "glasses": true,
+  "consentData": true,
+  "consentExperiment": true,
+  "calibrationAccuracy": {},
+  "statistics": {
+    "totalTasks": 0,
+    "completedTasks": 0,
+    "totalGazePoints": 0,
+    "totalEmotionSamples": 0,
+    "totalInteractions": 0,
+    "avgTaskDuration": 0,
+    "emotionDistribution": {}
+  }
+}

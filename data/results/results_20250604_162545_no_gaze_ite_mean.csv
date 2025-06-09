@@ -1,0 +1,5 @@
+Model,Mean
+T-learner + RF (no gaze),-0.03475
+X-learner + RF (no gaze),-0.030089999999999995
+T-learner + CF (no gaze),-0.030889880952380887
+X-learner + CF (no gaze),-0.02651877501497754

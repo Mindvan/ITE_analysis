@@ -1,0 +1,9 @@
+{
+  "sessionId": "test_session",
+  "browser": {
+    "name": "test_browser"
+  },
+  "tasks": [],
+  "gazeData": [],
+  "emotionData": []
+}

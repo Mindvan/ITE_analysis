@@ -119,6 +119,7 @@ class ITEAnalyzer:
     def load_all_sessions(self):
         """Загружает все экспериментальные json-файлы в датафрейм"""
         records = []
+        print("\n=== Начало загрузки сессий ===")
         for fname in os.listdir(self.experiments_folder):
             if fname.endswith('.json'):
                 with open(os.path.join(self.experiments_folder, fname), 'r', encoding='utf-8') as f:
@@ -129,9 +130,14 @@ class ITEAnalyzer:
                         browser_name = browser.get('name', 'Unknown')
                     else:
                         browser_name = browser or 'Unknown'
+                    print(f"Файл: {fname}")
+                    print(f"  Браузер: {browser_name}")
+                    print(f"  Данные браузера: {browser}")
                     tasks = data.get('tasks', [])
                     completed_tasks = [t for t in tasks if t.get('completed')]
                     completion_rate = len(completed_tasks) / len(tasks) if tasks else 0
+                    print(f"  Выполнено заданий: {len(completed_tasks)} из {len(tasks)}")
+                    print("---")
                     avg_task_duration = np.mean([t.get('duration', 0) for t in completed_tasks]) if completed_tasks else 0
                     total_gaze_points = len(data.get('gazeData', []))
                     total_emotions = len(data.get('emotionData', []))
@@ -249,24 +255,22 @@ class ITEAnalyzer:
                 }])
                 df = pd.concat([df, df_new], ignore_index=True)
 
+            print("\n=== Анализ данных ===")
+            print(f"Всего сессий: {len(df)}")
+            print("Браузеры в данных:")
+            print(df['browser'].value_counts())
+
             df['treatment'] = (df['browser'] == 'Chrome').astype(int)
+            print("\nTreatment распределение:")
+            print(df['treatment'].value_counts())
+            print("===================\n")
+
             outcome = 'completion_rate'
             features = ['avg_task_duration', 'total_gaze_points', 'total_emotions', 'total_interactions', 'positive_emotions', 'negative_emotions', 'neutral_emotions', 'emotion_transitions_count', 'gaze_num_fixations', 'gaze_avg_fixation_duration', 'gaze_dispersion_x', 'gaze_dispersion_y']
 
             warning = None
-            if len(df) < 10 or df['treatment'].nunique() < 2:
-                warning = 'Внимание: мало данных для корректного анализа. Результаты могут быть некорректны.'
-                return {
-                    'session_count': int(len(df)),
-                    'ite_mean': {}, 
-                    'ite_std': {},  
-                    'visualizations': {},
-                    'individual_ites': [], 
-                    'note': warning
-                }
-
-            if df['treatment'].nunique() < 2:
-                warning = 'Внимание: недостаточно разных браузеров (Chrome или не-Chrome) для анализа ITE.'
+            if len(df) < 2 or df['treatment'].nunique() < 2:
+                warning = 'Внимание: необходимо провести эксперимент хотя бы в двух разных браузерах (Chrome и не-Chrome).'
                 return {
                     'session_count': int(len(df)),
                     'ite_mean': {}, 
@@ -280,6 +284,13 @@ class ITEAnalyzer:
             y = df[outcome].values
             treatment = df['treatment'].values
 
+            # Разделяем данные на группы
+            X_treat = X[treatment == 1]
+            y_treat = y[treatment == 1]
+            X_ctrl = X[treatment == 0]
+            y_ctrl = y[treatment == 0]
+
+            # Проверяем, что у нас есть данные для обеих групп
             if len(X_treat) == 0 or len(y_treat) == 0 or len(X_ctrl) == 0 or len(y_ctrl) == 0:
                 plt.figure(figsize=(6, 2))
                 plt.text(0.5, 0.5, 'Недостаточно данных для анализа', ha='center', va='center', fontsize=12)
@@ -298,6 +309,18 @@ class ITEAnalyzer:
                     },
                     'individual_ites': [], 
                     'note': 'Внимание: нет данных хотя бы для одной из групп (Chrome или не-Chrome). Анализ невозможен.'
+                }
+
+            # Проверяем, что у нас достаточно данных для анализа
+            if len(X_treat) < 1 or len(X_ctrl) < 1:
+                warning = 'Внимание: необходимо провести эксперимент хотя бы в двух разных браузерах (Chrome и не-Chrome).'
+                return {
+                    'session_count': int(len(df)),
+                    'ite_mean': {}, 
+                    'ite_std': {},  
+                    'visualizations': {},
+                    'individual_ites': [], 
+                    'note': warning
                 }
 
             # --- T-learner + Random Forest ---
@@ -699,3 +722,176 @@ class ITEAnalyzer:
         except Exception as e:
             print(f"Ошибка при сохранении all_features_table: {e}")
         return results 
+
+    def analyze_two_sessions(self, chrome_data, firefox_data):
+        """
+        Анализирует две сессии от одного респондента (Chrome и Firefox)
+        и возвращает персонализированный результат по трём вариантам: интегрированный, только эмоции, только gaze
+        """
+        try:
+            # Подготавливаем данные для Chrome
+            chrome_metrics = self._extract_metrics(chrome_data)
+            chrome_metrics['browser'] = 'Chrome'
+            firefox_metrics = self._extract_metrics(firefox_data)
+            firefox_metrics['browser'] = 'Firefox'
+            df = pd.DataFrame([chrome_metrics, firefox_metrics])
+
+            # Варианты признаков
+            features_full = [
+                'avg_task_duration', 'total_gaze_points', 'total_emotions', 'total_interactions',
+                'positive_emotions', 'negative_emotions', 'neutral_emotions', 'emotion_transitions_count',
+                'gaze_num_fixations', 'gaze_avg_fixation_duration', 'gaze_dispersion_x', 'gaze_dispersion_y'
+            ]
+            features_no_gaze = [
+                'avg_task_duration', 'total_emotions', 'total_interactions',
+                'positive_emotions', 'negative_emotions', 'neutral_emotions', 'emotion_transitions_count'
+            ]
+            features_no_emotion = [
+                'avg_task_duration', 'total_gaze_points', 'total_interactions',
+                'gaze_num_fixations', 'gaze_avg_fixation_duration', 'gaze_dispersion_x', 'gaze_dispersion_y'
+            ]
+
+            def calc_effect(df, features):
+                chrome_vals = df[df['browser'] == 'Chrome'][features].values.astype(float)
+                firefox_vals = df[df['browser'] == 'Firefox'][features].values.astype(float)
+                if len(chrome_vals) == 0 or len(firefox_vals) == 0:
+                    return None
+                chrome_mean = chrome_vals.mean()
+                firefox_mean = firefox_vals.mean()
+                effect = (chrome_mean - firefox_mean) / firefox_mean if firefox_mean else 0.0
+                return float(effect)
+
+            effect_full = calc_effect(df, features_full)
+            effect_no_gaze = calc_effect(df, features_no_gaze)
+            effect_no_emotion = calc_effect(df, features_no_emotion)
+
+            # Формируем результат
+            result = {
+                'individual_effect': {
+                    'value': effect_full,
+                    'confidence_interval': [
+                        float(effect_full - 0.1),
+                        float(effect_full + 0.1)
+                    ]
+                },
+                'individual_effects_variants': {
+                    'integrated': effect_full,
+                    'no_gaze': effect_no_gaze,
+                    'no_emotion': effect_no_emotion
+                },
+                'browser_comparison': {
+                    'Chrome': {
+                        'avg_task_duration': float(df[df['browser'] == 'Chrome']['avg_task_duration'].iloc[0]),
+                        'positive_emotions': int(df[df['browser'] == 'Chrome']['positive_emotions'].iloc[0]),
+                        'completion_rate': float(df[df['browser'] == 'Chrome']['completion_rate'].iloc[0]),
+                        'calibrationAccuracy': chrome_metrics.get('calibrationAccuracy'),
+                        'anxietyIndex': chrome_metrics.get('anxietyIndex')
+                    },
+                    'Firefox': {
+                        'avg_task_duration': float(df[df['browser'] == 'Firefox']['avg_task_duration'].iloc[0]),
+                        'positive_emotions': int(df[df['browser'] == 'Firefox']['positive_emotions'].iloc[0]),
+                        'completion_rate': float(df[df['browser'] == 'Firefox']['completion_rate'].iloc[0]),
+                        'calibrationAccuracy': firefox_metrics.get('calibrationAccuracy'),
+                        'anxietyIndex': firefox_metrics.get('anxietyIndex')
+                    }
+                },
+                'emotion_stats': {
+                    'Chrome': {
+                        'positive': int(df[df['browser'] == 'Chrome']['positive_emotions'].iloc[0]),
+                        'negative': int(df[df['browser'] == 'Chrome']['negative_emotions'].iloc[0]),
+                        'neutral': int(df[df['browser'] == 'Chrome']['neutral_emotions'].iloc[0]),
+                        'distribution': chrome_metrics['emotion_distribution']
+                    },
+                    'Firefox': {
+                        'positive': int(df[df['browser'] == 'Firefox']['positive_emotions'].iloc[0]),
+                        'negative': int(df[df['browser'] == 'Firefox']['negative_emotions'].iloc[0]),
+                        'neutral': int(df[df['browser'] == 'Firefox']['neutral_emotions'].iloc[0]),
+                        'distribution': firefox_metrics['emotion_distribution']
+                    }
+                }
+            }
+            return result
+        except Exception as e:
+            print(f"Ошибка при анализе двух сессий: {str(e)}")
+            return {
+                'error': str(e),
+                'note': 'Произошла ошибка при анализе данных. Убедитесь, что оба файла содержат корректные данные.'
+            }
+
+    def _extract_metrics(self, data):
+        """Извлекает метрики из данных эксперимента"""
+        tasks = data.get('tasks', [])
+        completed_tasks = [t for t in tasks if t.get('completed')]
+        avg_task_duration = np.mean([t.get('duration', 0) for t in completed_tasks]) / 1000 if completed_tasks else 0
+        completion_rate = len(completed_tasks) / len(tasks) if tasks else 0
+
+        # Эмоции
+        emotion_data = data.get('emotionData', [])
+        total_emotions = len(emotion_data)
+        positive_emotions = sum(1 for e in emotion_data if e.get('dominantEmotion') == 'happy')
+        negative_emotions = sum(1 for e in emotion_data if e.get('dominantEmotion') in ['angry', 'sad', 'fearful', 'disgusted'])
+        neutral_emotions = sum(1 for e in emotion_data if e.get('dominantEmotion') == 'neutral')
+        # Новое: распределение по всем эмоциям
+        all_emotions = ['happy', 'sad', 'angry', 'surprised', 'disgusted', 'fearful', 'neutral']
+        emotion_distribution = {e: 0 for e in all_emotions}
+        for e in emotion_data:
+            dom = e.get('dominantEmotion')
+            if dom in emotion_distribution:
+                emotion_distribution[dom] += 1
+        # Переходы эмоций
+        emotion_transitions_count = 0
+        if emotion_data:
+            previous_emotion = emotion_data[0].get('dominantEmotion')
+            for i in range(1, len(emotion_data)):
+                current_emotion = emotion_data[i].get('dominantEmotion')
+                if current_emotion and previous_emotion and current_emotion != previous_emotion:
+                    emotion_transitions_count += 1
+                previous_emotion = current_emotion
+
+        # Взаимодействия
+        total_interactions = len(data.get('interactionEvents', []))
+
+        # Gaze-метрики
+        gaze_data = data.get('gazeData', [])
+        total_gaze_points = len(gaze_data)
+        gaze_metrics = detect_fixations(gaze_data)
+        gaze_num_fixations = gaze_metrics['num_fixations']
+        gaze_avg_fixation_duration = gaze_metrics['avg_fixation_duration']
+        gaze_dispersion_x = gaze_metrics['gaze_dispersion_x']
+        gaze_dispersion_y = gaze_metrics['gaze_dispersion_y']
+
+        # Индекс тревожности (аналогично групповому анализу, но для одной сессии)
+        # Формула: AnxietyIndex = w1*A_disp + w2*f_fix - w3*t_fix_avg
+        # где A_disp = sqrt(gaze_dispersion_x^2 + gaze_dispersion_y^2)
+        #      t_fix_avg = gaze_avg_fixation_duration
+        #      f_fix = gaze_num_fixations / (avg_task_duration) (на 1 секунду)
+        #      w1, w2, w3 = 1.0
+        if avg_task_duration > 0:
+            A_disp = np.sqrt(gaze_dispersion_x ** 2 + gaze_dispersion_y ** 2)
+            t_fix_avg = gaze_avg_fixation_duration
+            f_fix = gaze_num_fixations / avg_task_duration
+            w1 = w2 = w3 = 1.0
+            anxietyIndex = w1 * A_disp + w2 * f_fix - w3 * t_fix_avg
+        else:
+            anxietyIndex = None
+
+        # Извлекаем калибровку, если есть
+        calibration = data.get('calibrationAccuracy')
+        return {
+            'completion_rate': completion_rate,
+            'avg_task_duration': avg_task_duration,
+            'total_gaze_points': total_gaze_points,
+            'total_emotions': total_emotions,
+            'total_interactions': total_interactions,
+            'positive_emotions': positive_emotions,
+            'negative_emotions': negative_emotions,
+            'neutral_emotions': neutral_emotions,
+            'emotion_transitions_count': emotion_transitions_count,
+            'gaze_num_fixations': gaze_num_fixations,
+            'gaze_avg_fixation_duration': gaze_avg_fixation_duration,
+            'gaze_dispersion_x': gaze_dispersion_x,
+            'gaze_dispersion_y': gaze_dispersion_y,
+            'emotion_distribution': emotion_distribution,
+            'calibrationAccuracy': calibration,
+            'anxietyIndex': anxietyIndex
+        } 

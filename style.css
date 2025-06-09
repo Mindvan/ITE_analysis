@@ -591,4 +591,52 @@ canvas {
 
 .accuracy-tooltip.visible {
   opacity: 1;
+}
+
+/* Увеличенная ширина модального окна для результатов */
+#resultsModal .modal-content {
+    max-width: 960px;
+    width: 96vw;
+    min-width: 340px;
+}
+
+.result-section {
+    max-width: 900px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.browser-comparison {
+    flex-wrap: wrap;
+    gap: 32px;
+}
+
+.browser-stats {
+    min-width: 260px;
+    max-width: 400px;
+    width: 100%;
+}
+
+@media (max-width: 1100px) {
+  #resultsModal .modal-content {
+    max-width: 99vw;
+    width: 99vw;
+  }
+  .result-section {
+    max-width: 99vw;
+  }
+}
+
+.custom-modal-content {
+    max-width: 960px;
+    width: 96vw;
+    min-width: 340px;
+}
+
+@media (max-width: 1100px) {
+  .custom-modal-content {
+    max-width: 99vw;
+    width: 99vw;
+  }
 } 

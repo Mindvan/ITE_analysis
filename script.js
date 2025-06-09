@@ -75,8 +75,8 @@ if (typeof document !== 'undefined') {
 
   experimentBtn.addEventListener('click', () => {
     if (!isExperimentRunning) {
-
       isExperimentRunning = true;
+      const oldExperimentData = { ...experimentData };  // Сохраняем старые данные
       experimentData = {
         startTime: Date.now(),
         endTime: null,
@@ -85,14 +85,14 @@ if (typeof document !== 'undefined') {
         emotionData: [],
         sessionId: generateSessionId(),
         timestamp: Date.now(),
-        browser: {
+        browser: oldExperimentData.browser || {  // Используем старые данные о браузере
           name: getBrowserName(),
           version: getBrowserVersion(),
           userAgent: navigator.userAgent,
           platform: navigator.platform,
           language: navigator.language
         },
-        screen: {
+        screen: oldExperimentData.screen || {  // Используем старые данные об экране
           width: screen.width,
           height: screen.height,
           availWidth: screen.availWidth,
@@ -117,7 +117,7 @@ if (typeof document !== 'undefined') {
           experimentData.consentData = parsed.consentData;
           experimentData.consentExperiment = parsed.consentExperiment;
         } catch (e) {
-          // Если localStorage битый то ничего не делаем
+
         }
       }
       experimentBtn.textContent = 'Завершить';
@@ -127,7 +127,7 @@ if (typeof document !== 'undefined') {
       updateTimer();
       if (tasksBtn) tasksBtn.disabled = false;
     } else {
-      // Завершение эксперимента
+
       isExperimentRunning = false;
       experimentData.endTime = Date.now();
       experimentData.duration = experimentData.endTime - experimentData.startTime;
@@ -161,11 +161,22 @@ if (typeof document !== 'undefined') {
       completeTask(experimentData.currentTaskId)
     }
 
-    // Сохраняем процент калибровки, если он есть
+
     if (typeof window !== 'undefined' && typeof window.calibrationAccuracy !== 'undefined') {
       experimentData.calibrationAccuracy = window.calibrationAccuracy;
     } else {
       experimentData.calibrationAccuracy = null;
+    }
+
+
+    if (!experimentData.browser) {
+      experimentData.browser = {
+        name: getBrowserName(),
+        version: getBrowserVersion(),
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language
+      };
     }
 
     experimentData.statistics = {
@@ -190,7 +201,30 @@ if (typeof document !== 'undefined') {
       const result = await response.json()
       if (result.status === 'success') {
         console.log('Данные отправлены на сервер:', result)
-        alert('Данные эксперимента сохранены! Для анализа необходимо провести эксперимент хотя бы в двух разных браузерах (Chrome и не-Chrome). Когда будет достаточно данных, нажмите кнопку \'Анализировать\'.');
+        
+
+        const analyzeTwoSessionsBtn = document.createElement('button');
+        analyzeTwoSessionsBtn.textContent = 'Анализировать две сессии';
+        analyzeTwoSessionsBtn.className = 'btn btn-info';
+        analyzeTwoSessionsBtn.style.marginTop = '10px';
+        analyzeTwoSessionsBtn.style.marginLeft = '10px';
+        analyzeTwoSessionsBtn.onclick = () => {
+          const sessionIds = prompt('Введите ID двух сессий через запятую (например: session_123, session_456):');
+          if (sessionIds) {
+            const ids = sessionIds.split(',').map(id => id.trim());
+            if (ids.length === 2) {
+              analyzeSessions(ids);
+            } else {
+              alert('Пожалуйста, введите ровно два ID сессий через запятую');
+            }
+          }
+        };
+        
+
+        const experimentBtn = document.getElementById('experimentBtn');
+        experimentBtn.parentNode.insertBefore(analyzeTwoSessionsBtn, experimentBtn.nextSibling);
+        
+        alert('Данные эксперимента сохранены! Для анализа необходимо провести эксперимент хотя бы в двух разных браузерах (Chrome и не-Chrome). Когда будет достаточно данных, нажмите кнопку \'Анализировать две сессии\'.');
       } else {
         console.error('Ошибка отправки:', result.error)
       }
@@ -233,87 +267,18 @@ if (typeof document !== 'undefined') {
   }
 
 
-  async function analyzeExperiment(sessionId = null) {
-    showLoaderModal();
-    const body = sessionId ? { session_id: sessionId } : {};
-    try {
-      const response = await fetch('http://localhost:5000/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const result = await response.json();
-      hideLoaderModal();
-      if (result.status === 'success') {
-        console.log('Анализ завершен:', result);
-        displayResults(result.results);
-      } else {
-        alert('Ошибка анализа: ' + (result.error || 'Неизвестная ошибка'));
-      }
-    } catch (err) {
-      hideLoaderModal();
-      alert('Ошибка анализа: ' + err.message);
-    }
-  }
+  function showResultsModal(html) {
 
+    const oldModal = document.getElementById('resultsModal');
+    if (oldModal) oldModal.remove();
 
-  function displayResults(results) {
-    function renderBlock(block, title) {
-      if (!block) return `<div style='color:#b00'>Недостаточно данных для анализа (${title})</div>`;
-      const meanRows = Object.entries(block.ite_mean)
-        .map(([k, v]) => `<tr><td>${k}</td><td>${v.toFixed(3)}</td><td>${block.ite_std[k].toFixed(3)}</td></tr>`)
-        .join('');
-      const boxplotKey = Object.keys(block.visualizations).find(k => k.includes('boxplot'));
-      return `
-        <div style="margin-bottom:28px;">
-          <h3 style="font-size: 16px; margin-bottom: 8px;">${title}</h3>
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr>
-                <th style="padding:4px 8px;">Модель</th>
-                <th style="padding:4px 8px;">Средний эффект</th>
-                <th style="padding:4px 8px;">Std</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${meanRows}
-            </tbody>
-          </table>
-          <div style="margin-top:10px;">
-            <img src="data:image/png;base64,${block.visualizations[boxplotKey]}" 
-                 style="max-width:100%;height:auto;display:block;margin:0 auto;border:1px solid #eee;">
-          </div>
-        </div>
-      `;
-    }
-
-    const resultsModal = document.createElement('div');
-    resultsModal.className = 'custom-modal';
-    resultsModal.innerHTML = `
-      <div class="custom-modal-content" style="
-        max-width: 900px;
-        width: 98vw;
-        font-size: 14px;
-        padding: 20px 24px 16px 24px;
-        box-sizing: border-box;
-      ">
+    const modal = document.createElement('div');
+    modal.id = 'resultsModal';
+    modal.className = 'custom-modal';
+    modal.innerHTML = `
+      <div class="custom-modal-content" style="width: 98vw; font-size: 14px; padding: 20px 24px 16px 24px; box-sizing: border-box;">
         <span class="close" onclick="this.parentElement.parentElement.remove()" style="font-size: 24px; float: right; cursor: pointer;">&times;</span>
-        <h2 style="font-size: 20px; margin-bottom: 12px;">Результаты анализа</h2>
-        <div style="margin-bottom: 18px;">
-          <b>Сравниваются три варианта вектора признаков X:</b><br>
-          <ul style="margin: 6px 0 0 18px; font-size:13px;">
-            <li><b>Интегрированный</b> — все метрики (gaze, emotion, поведенческие)</li>
-            <li><b>Без gaze</b> — только emotion и поведенческие</li>
-            <li><b>Без emotion</b> — только gaze и поведенческие</li>
-          </ul>
-        </div>
-        ${renderBlock(results.full_features, 'Интегрированный (gaze + emotion + поведенческие)')}
-        ${renderBlock(results.no_gaze, 'Без gaze-метрик (только emotion + поведенческие)')}
-        ${renderBlock(results.no_emotion, 'Без emotion-метрик (только gaze + поведенческие)')}
-        <div style="margin-top:12px;">
-          <h3 style="font-size: 15px; margin-bottom: 6px;">Примечание:</h3>
-          <p style="font-size:13px;">${results.note}</p>
-        </div>
+        ${html}
       </div>
       <style>
         .custom-modal {
@@ -335,7 +300,150 @@ if (typeof document !== 'undefined') {
         }
       </style>
     `;
-    document.body.appendChild(resultsModal);
+    document.body.appendChild(modal);
+  }
+
+
+  async function analyzeSessions(sessionIds) {
+    try {
+        showLoaderModal('Выполняется анализ двух сессий...');
+        
+        const response = await fetch('http://localhost:5000/api/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sessionIds })
+        });
+
+        const result = await response.json();
+        hideLoaderModal();
+        
+        if (result.error) {
+            alert(`Ошибка анализа: ${result.error}\n${result.note || ''}`);
+            return;
+        }
+
+
+        let effectDirection = '';
+        if (result.individual_effect.value > 0) {
+            effectDirection = '<div style="margin:10px 0 0 0; color: #388e3c; font-weight: bold;">Эффект в пользу Chrome</div>';
+        } else if (result.individual_effect.value < 0) {
+            effectDirection = '<div style="margin:10px 0 0 0; color: #1976d2; font-weight: bold;">Эффект в пользу Firefox</div>';
+        } else {
+            effectDirection = '<div style="margin:10px 0 0 0; color: #888; font-weight: bold;">Эффект отсутствует</div>';
+        }
+
+        function getEmotionPercents(emotionDistribution) {
+            const allEmotions = ['happy','sad','angry','surprised','disgusted','fearful','neutral'];
+            const total = allEmotions.reduce((sum, e) => sum + (emotionDistribution[e] || 0), 0) || 1;
+            const percents = {};
+            allEmotions.forEach(e => {
+                percents[e] = ((emotionDistribution[e] || 0) / total * 100).toFixed(1);
+            });
+            return percents;
+        }
+        const chromePercents = getEmotionPercents(result.emotion_stats.Chrome.distribution);
+        const firefoxPercents = getEmotionPercents(result.emotion_stats.Firefox.distribution);
+
+        let emotionTable = `<table style="margin-top:10px; border-collapse:collapse; width:100%; font-size:13px;">
+            <tr><th style='text-align:left;'>Эмоция</th><th>Chrome (%)</th><th>Firefox (%)</th></tr>`;
+        ['happy','sad','angry','surprised','disgusted','fearful','neutral'].forEach(emotion => {
+            emotionTable += `<tr><td>${emotion}</td><td>${chromePercents[emotion]}</td><td>${firefoxPercents[emotion]}</td></tr>`;
+        });
+        emotionTable += '</table>';
+
+        const chromeIcon = `<img src="assets/logo_chrome.png" alt="Chrome" style="height:22px;vertical-align:middle;margin-right:6px;">`;
+        const firefoxIcon = `<img src="assets/logo_firefox.png" alt="Firefox" style="height:22px;vertical-align:middle;margin-right:6px;">`;
+
+        let variantsTable = '';
+        if (result.individual_effects_variants) {
+            variantsTable = `<div style='margin:18px 0 0 0;'>
+                <b style='font-size:15px;'>Варианты индивидуального эффекта:</b>
+                <table style='margin-top:8px; border-collapse:collapse; width:100%; font-size:13px;'>
+                    <tr><th style='text-align:left;'>Вариант</th><th>Процент</th><th>ITE</th></tr>
+                    <tr><td>Интегрированный (все метрики)</td><td>${(result.individual_effects_variants.integrated * 100).toFixed(1)}%</td><td>${result.individual_effects_variants.integrated.toFixed(3)}</td></tr>
+                    <tr><td>Только эмоции (без gaze)</td><td>${(result.individual_effects_variants.no_gaze * 100).toFixed(1)}%</td><td>${result.individual_effects_variants.no_gaze.toFixed(3)}</td></tr>
+                    <tr><td>Только gaze (без эмоций)</td><td>${(result.individual_effects_variants.no_emotion * 100).toFixed(1)}%</td><td>${result.individual_effects_variants.no_emotion.toFixed(3)}</td></tr>
+                </table>
+            </div>`;
+        }
+
+        let calibrationChrome = result.browser_comparison.Chrome.calibrationAccuracy !== undefined ? result.browser_comparison.Chrome.calibrationAccuracy : null;
+        let calibrationFirefox = result.browser_comparison.Firefox.calibrationAccuracy !== undefined ? result.browser_comparison.Firefox.calibrationAccuracy : null;
+        let anxietyChrome = result.browser_comparison.Chrome.anxietyIndex !== undefined ? result.browser_comparison.Chrome.anxietyIndex : null;
+        let anxietyFirefox = result.browser_comparison.Firefox.anxietyIndex !== undefined ? result.browser_comparison.Firefox.anxietyIndex : null;
+
+        let ciLow = result.individual_effect.confidence_interval[0];
+        let ciHigh = result.individual_effect.confidence_interval[1];
+        let ciWidth = Math.abs(ciHigh - ciLow);
+        let ciText = '';
+        if (ciLow < 0 && ciHigh < 0) {
+            ciText = 'Эффект устойчив и статистически значим.';
+        } else if (ciLow > 0 && ciHigh > 0) {
+            ciText = 'Эффект устойчив и статистически значим.';
+        } else if (ciLow < 0 && ciHigh > 0) {
+            ciText = 'Разница между браузерами не доказана статистически.';
+        }
+        if (ciWidth > 0.3) {
+            ciText += ' Оценка эффекта неуверенная (широкий интервал).';
+        } else if (ciWidth < 0.15) {
+            ciText += ' Оценка эффекта уверенная (узкий интервал).';
+        }
+        const html = `
+            <h3 style="font-size: 22px; margin-bottom: 18px; color: #222; letter-spacing: 0.5px;">Результаты оценки пользовательского опыта по трекингу взгляда и мимике</h3>
+            <div class="result-section" style="background: #f8fafc; box-shadow: 0 2px 16px #0001; border-radius: 12px; padding: 20px 24px 18px 24px; margin-bottom: 18px;">
+                <h4 style="font-size: 17px; color: #333; margin-bottom: 10px;">Индивидуальный эффект воздействия</h4>
+                <p style="font-size: 15px; margin: 0 0 6px 0;">Значение: <b>${(result.individual_effect.value * 100).toFixed(1)}%</b> <span style='color:#888;font-size:13px;'>(ITE: ${result.individual_effect.value.toFixed(3)})</span></p>
+                <p style="font-size: 14px; margin: 0 0 6px 0; color: #666;">Доверительный интервал (95%): <b>[${(result.individual_effect.confidence_interval[0] * 100).toFixed(1)}%, ${(result.individual_effect.confidence_interval[1] * 100).toFixed(1)}%]</b></p>
+                ${effectDirection}
+                ${variantsTable}
+                <p style="font-size: 13px; color: #1976d2; margin: 10px 0 0 0;">${ciText}</p>
+            </div>
+            <div class="result-section" style="background: #fff; box-shadow: 0 2px 16px #0001; border-radius: 12px; padding: 20px 24px 18px 24px;">
+                <h4 style="font-size: 17px; color: #333; margin-bottom: 10px;">Сравнение браузеров и эмоций</h4>
+                <div class="browser-comparison" style="display: flex; justify-content: space-around; gap: 24px; margin-bottom: 18px;">
+                    <div class="browser-stats" style="background: linear-gradient(90deg,#e3f2fd,#fff); border-radius: 8px; padding: 14px 18px; min-width: 220px; box-shadow: 0 1px 6px #90caf940;">
+                        <h5 style="color: #1976d2; font-size: 16px; margin-bottom: 8px;">${chromeIcon}Chrome</h5>
+                        <p>Среднее время выполнения: <b>${result.browser_comparison.Chrome.avg_task_duration.toFixed(2)} сек</b></p>
+                        <p>Калибровка (точность): <b>${calibrationChrome !== null ? calibrationChrome.toFixed(1) + '%' : 'Н/Д'}</b></p>
+                        <p>Индекс тревожности (отвлечённости): <b>${anxietyChrome !== null ? anxietyChrome.toFixed(3) : 'Н/Д'}</b></p>
+                        <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                            <b>Эмоции:</b><br>
+                            Положительные: ${result.emotion_stats.Chrome.positive}<br>
+                            Отрицательные: ${result.emotion_stats.Chrome.negative}<br>
+                            Нейтральные: ${result.emotion_stats.Chrome.neutral}
+                        </div>
+                    </div>
+                    <div class="browser-stats" style="background: linear-gradient(90deg,#fff3e0,#fff); border-radius: 8px; padding: 14px 18px; min-width: 220px; box-shadow: 0 1px 6px #ffcc8040;">
+                        <h5 style="color: #ff9800; font-size: 16px; margin-bottom: 8px;">${firefoxIcon}Firefox</h5>
+                        <p>Среднее время выполнения: <b>${result.browser_comparison.Firefox.avg_task_duration.toFixed(2)} сек</b></p>
+                        <p>Калибровка (точность): <b>${calibrationFirefox !== null ? calibrationFirefox.toFixed(1) + '%' : 'Н/Д'}</b></p>
+                        <p>Индекс тревожности (отвлечённости): <b>${anxietyFirefox !== null ? anxietyFirefox.toFixed(3) : 'Н/Д'}</b></p>
+                        <div style="margin-top: 10px; font-size: 13px; color: #666;">
+                            <b>Эмоции:</b><br>
+                            Положительные: ${result.emotion_stats.Firefox.positive}<br>
+                            Отрицательные: ${result.emotion_stats.Firefox.negative}<br>
+                            Нейтральные: ${result.emotion_stats.Firefox.neutral}
+                        </div>
+                    </div>
+                </div>
+                <div style='margin-top:10px; font-size:12px; color:#888;'>
+                    <b>Примечание:</b> Индекс тревожности (отвлечённости) — интегральный безразмерный показатель на основе трекинга взгляда, используется только для сравнения между сессиями. Дальнейшую интерпретацию должны дать психологи.
+                </div>
+                <div style='margin-top:16px;'>
+                    <b style="font-size:15px;">Проценты всех эмоций:</b>
+                    ${emotionTable}
+                </div>
+            </div>
+        `;
+        showResultsModal(html);
+
+    } catch (error) {
+        hideLoaderModal();
+        console.error('Ошибка при анализе:', error);
+        alert('Произошла ошибка при анализе данных');
+    }
   }
 
 
@@ -476,7 +584,7 @@ if (typeof document !== 'undefined') {
 
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      // Инициализируем webgazer со стандартными настройками
+
     await webgazer.setRegression('ridge')
       .setGazeListener((data, timestamp) => {
         if (data == null) {
@@ -496,14 +604,14 @@ if (typeof document !== 'undefined') {
         .saveDataAcrossSessions(true)
       .begin();
 
-      // применяем стандартные настройки WebGazer
+
       webgazer.showVideoPreview(true)
         .showPredictionPoints(true)
         .applyKalmanFilter(true);
 
       console.log('Webgazer initialized successfully');
       
-      // загружаем Face API
+
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
         faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
@@ -696,13 +804,13 @@ if (typeof document !== 'undefined') {
   })
 
 
-  // Привязываем кнопку калибровки к стандартной функции
+
   document.getElementById('startCalibrationBtn').onclick = () => {
-    // Скрываем панель управления на время калибровки
+
     document.querySelector('.controls').style.display = 'none';
     document.querySelector('.content-offset').style.display = 'none';
     
-    // показываем canvas для калибровки
+
     const canvas = document.getElementById('plotting_canvas');
     canvas.style.display = 'block';
     canvas.width = window.innerWidth;
@@ -712,7 +820,7 @@ if (typeof document !== 'undefined') {
     canvas.style.left = '0';
     canvas.style.zIndex = '1001';
     
-    // Запускаем стандартную калибровку
+
     PopUpInstruction();
   };
 
@@ -773,7 +881,7 @@ if (typeof document !== 'undefined') {
           alert('Ошибка анализа: ' + err.message);
         }
       } else {
-        await analyzeExperiment();
+        await analyzeSessions();
       }
     };
     analyzeBtn.addEventListener('click', window._oldAnalyzeHandler);
@@ -808,12 +916,12 @@ if (typeof document !== 'undefined') {
     updateSelectedFilesList();
   };
 
-  // Обновляем функцию для рисования точек взгляда
+
   function drawGazePoint(x, y) {
     const canvas = document.getElementById('plotting_canvas');
     const ctx = canvas.getContext('2d');
     
-    // Проверяем, что координаты валидные
+
     if (!x || !y || isNaN(x) || isNaN(y)) {
       console.log('Invalid coordinates:', x, y);
       return;
@@ -821,29 +929,29 @@ if (typeof document !== 'undefined') {
     
     console.log('Drawing point at:', x, y); // отладочная информация
     
-    // Очищаем предыдущую точку
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // делаем точку более заметной
+
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, 2 * Math.PI);
     ctx.fillStyle = 'rgba(0, 0, 255, 0.7)';
     ctx.fill();
     
-    // Добавляем обводку для лучшей видимости
+
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
 
-  // Добавляем слушатель изменения размера окна
+
   window.addEventListener('resize', () => {
     if (document.getElementById('plotting_canvas').style.display === 'block') {
       showCalibrationUI();
     }
   });
 
-  // Экспорт функций для тестирования
+
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
       generateSessionId,
@@ -876,21 +984,21 @@ if (typeof document !== 'undefined') {
           alert('Пожалуйста, заполните все обязательные поля и дайте согласия.');
           return;
         }
-        // Сохраняем в experimentData
+
         experimentData.participantNumber = participantNumber;
         experimentData.glasses = glasses;
         experimentData.consentData = consentData;
         experimentData.consentExperiment = consentExperiment;
-        // Сохраняем в window для новых сессий
+
         window.participantInfo = { participantNumber, glasses, consentData, consentExperiment };
-        // Скрываем модалку и разблокируем страницу
+
         modal.style.display = 'none';
         document.body.style.overflow = '';
       });
     }
   });
 
-  // Проверка participantInfo при загрузке страницы
+
   if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
       const info = localStorage.getItem('participantInfo');
@@ -928,11 +1036,11 @@ if (typeof document !== 'undefined') {
         try {
           const text = await file.text();
           const json = JSON.parse(text);
-          // Если структура совпадает с результатами анализа — визуализируем
+
           if (json && (json.full_features || json.no_gaze || json.no_emotion)) {
             displayResults(json);
           } else if (json.results && (json.results.full_features || json.results.no_gaze || json.results.no_emotion)) {
-            // Если файл — это полный ответ сервера, берем .results
+
             displayResults(json.results);
           } else {
             alert('Файл не похож на отчет анализа!');
@@ -944,4 +1052,53 @@ if (typeof document !== 'undefined') {
       input.click();
     });
   }
+
+  function getEmotionColor(emotion) {
+    const colors = {
+      'happy': '#4CAF50',
+      'sad': '#2196F3',
+      'angry': '#F44336',
+      'surprised': '#FF9800',
+      'disgusted': '#9C27B0',
+      'fearful': '#795548',
+      'neutral': '#607D8B'
+    };
+    return colors[emotion] || '#9E9E9E';
+  }
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    if (analyzeBtn) {
+        analyzeBtn.style.display = 'none';
+    }
+
+    if (!document.getElementById('individualAnalyzeBtn')) {
+        const individualBtn = document.createElement('button');
+        individualBtn.id = 'individualAnalyzeBtn';
+        individualBtn.textContent = 'Индивидуальный анализ';
+        individualBtn.className = 'btn btn-info';
+        individualBtn.style.margin = '10px 0 0 10px';
+        individualBtn.onclick = () => {
+            const sessionIds = prompt('Введите ID двух сессий через запятую (например: session_123, session_456):');
+            if (sessionIds) {
+                const ids = sessionIds.split(',').map(id => id.trim());
+                if (ids.length === 2) {
+                    analyzeSessions(ids);
+                } else {
+                    alert('Пожалуйста, введите ровно два ID сессий через запятую');
+                }
+            }
+        };
+
+        if (analyzeBtn && analyzeBtn.parentNode) {
+            analyzeBtn.parentNode.insertBefore(individualBtn, analyzeBtn.nextSibling);
+        } else {
+            const controls = document.querySelector('.controls');
+            if (controls) controls.appendChild(individualBtn);
+            else document.body.appendChild(individualBtn);
+        }
+    }
+  });
 }

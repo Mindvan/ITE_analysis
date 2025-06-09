@@ -1,0 +1,28 @@
+{
+  "browser_comparison": {
+    "Chrome": {
+      "avg_task_time": 14.3,
+      "emotion_distribution": {
+        "neutral": 88.23529411764706,
+        "disgusted": 11.76470588235294
+      }
+    },
+    "Firefox": {
+      "avg_task_time": 4.26,
+      "emotion_distribution": {
+        "neutral": 40.909090909090914,
+        "angry": 59.09090909090909
+      }
+    }
+  },
+  "emotion_stats": {
+    "neutral": 73.97260273972603,
+    "disgusted": 8.21917808219178,
+    "angry": 17.80821917808219
+  },
+  "task_stats": {
+    "total_tasks": 6,
+    "completed_tasks": 6,
+    "avg_task_time": 3.0933333333333333
+  }
+}

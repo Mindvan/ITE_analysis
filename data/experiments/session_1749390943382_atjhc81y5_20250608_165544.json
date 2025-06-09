@@ -1,0 +1,78 @@
+{
+  "startTime": 1749390943382,
+  "endTime": 1749390943658,
+  "duration": 276,
+  "gazeData": [
+    {
+      "timestamp": 1749390943494,
+      "taskId": null,
+      "x": 183.1868081048985,
+      "y": -37.334255685151604,
+      "relativeTime": 112
+    },
+    {
+      "timestamp": 1749390943647,
+      "taskId": null,
+      "x": 100.45258672697659,
+      "y": -32.41124430537935,
+      "relativeTime": 265
+    }
+  ],
+  "emotionData": [
+    {
+      "timestamp": 1749390943532,
+      "taskId": null,
+      "expressions": {
+        "neutral": 0.9998665452003479,
+        "happy": 1.2495740975282388e-06,
+        "sad": 1.813475947187726e-08,
+        "angry": 8.75508874287334e-08,
+        "fearful": 6.84411916029859e-10,
+        "disgusted": 3.757744670984664e-10,
+        "surprised": 0.00013216648949310184
+      },
+      "relativeTime": 150,
+      "dominantEmotion": "neutral"
+    }
+  ],
+  "sessionId": "session_1749390943382_atjhc81y5",
+  "timestamp": 1749390943382,
+  "browser": {
+    "name": "Chrome",
+    "version": "137",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "language": "ru-RU"
+  },
+  "screen": {
+    "width": 1536,
+    "height": 864,
+    "availWidth": 1536,
+    "availHeight": 824,
+    "pixelRatio": 1.25,
+    "viewport": {
+      "width": 1536,
+      "height": 738
+    }
+  },
+  "tasks": [],
+  "currentTaskId": null,
+  "interactionEvents": [],
+  "errors": [],
+  "participantNumber": "13",
+  "glasses": true,
+  "consentData": true,
+  "consentExperiment": true,
+  "calibrationAccuracy": {},
+  "statistics": {
+    "totalTasks": 0,
+    "completedTasks": 0,
+    "totalGazePoints": 2,
+    "totalEmotionSamples": 1,
+    "totalInteractions": 0,
+    "avgTaskDuration": 0,
+    "emotionDistribution": {
+      "neutral": 1
+    }
+  }
+}

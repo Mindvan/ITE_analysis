@@ -1,0 +1,5 @@
+Model,Std
+T-learner + RF (no gaze),0.12403603307103947
+X-learner + RF (no gaze),0.09279205192256498
+T-learner + CF (no gaze),0.08312871770410445
+X-learner + CF (no gaze),0.05423764515632786
