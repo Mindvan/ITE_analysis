@@ -1,5 +1,0 @@
-Model,Mean
-T-learner + RF (no emotion),-0.03075
-X-learner + RF (no emotion),-0.02477875
-T-learner + CF (no emotion),-0.02512500000000002
-X-learner + CF (no emotion),-0.019027619460978844

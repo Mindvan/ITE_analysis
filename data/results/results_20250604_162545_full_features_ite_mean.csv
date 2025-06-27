@@ -1,5 +1,0 @@
-Model,Mean
-T-learner + RF (integrated),-0.033749999999999995
-X-learner + RF (integrated),-0.025849999999999995
-T-learner + CF (integrated),-0.03095
-X-learner + CF (integrated),-0.025585299251443

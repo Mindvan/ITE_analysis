@@ -1,5 +1,0 @@
-Model,Std
-T-learner + RF (integrated),0.1308756566363661
-X-learner + RF (integrated),0.09055601650359846
-T-learner + CF (integrated),0.10056141158516024
-X-learner + CF (integrated),0.07022652247914639
